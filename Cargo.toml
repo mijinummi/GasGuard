@@ -1,0 +1,38 @@
+[workspace]
+members = [
+    "packages/rules",
+    "libs/engine", 
+    "apps/api"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["GasGuard Team"]
+license = "MIT"
+description = "Automated Optimization Suite for Stellar Soroban Contracts"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# CLI and argument parsing
+clap = { version = "4.0", features = ["derive"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Parsing and AST
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Utilities
+colored = "2.0"
+walkdir = "2.0"
+chrono = { version = "0.4", features = ["serde"] }
