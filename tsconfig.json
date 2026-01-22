@@ -1,0 +1,69 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* Modules */
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* Emit */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": true,
+    "incremental": true,
+
+    /* Interop Constraints */
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+
+    /* Completeness */
+    "skipLibCheck": true,
+
+    /* Path Mapping for Monorepo */
+    "baseUrl": ".",
+    "paths": {
+      "@engine/core": ["libs/engine/core"],
+      "@engine/core/*": ["libs/engine/core/*"],
+      "@engine/analyzers": ["libs/engine/analyzers"],
+      "@engine/analyzers/*": ["libs/engine/analyzers/*"],
+      "@engine/*": ["libs/engine/*"],
+      "@rules/*": ["packages/rules/*"],
+      "@api/*": ["apps/api/src/*"]
+    }
+  },
+  "include": [
+    "apps/**/*",
+    "libs/**/*",
+    "packages/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}
