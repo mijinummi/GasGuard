@@ -1,0 +1,257 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  rust-test:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libs/engine
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Cargo.toml
+        id: check-cargo
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Found Cargo.toml, proceeding with Rust tests"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No Cargo.toml found in libs/engine. Skipping Rust tests."
+          fi
+
+      - name: Install Rust toolchain
+        if: steps.check-cargo.outputs.exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Cache cargo registry
+        if: steps.check-cargo.outputs.exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            libs/engine/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('libs/engine/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run cargo test
+        if: steps.check-cargo.outputs.exists == 'true'
+        run: cargo test --verbose
+
+  node-lint:
+    name: Node.js Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Detect package manager
+        id: package-manager
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> $GITHUB_OUTPUT
+            echo "lockfile=pnpm-lock.yaml" >> $GITHUB_OUTPUT
+          elif [ -f "yarn.lock" ]; then
+            echo "manager=yarn" >> $GITHUB_OUTPUT
+            echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+          else
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "lockfile=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install pnpm
+        if: steps.package-manager.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Check for package.json files
+        id: check-package
+        run: |
+          if [ -f "package.json" ] || [ -f "apps/api/package.json" ] || [ -f "packages/rules/package.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Found package.json file(s)"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No package.json files found. Skipping Node.js steps."
+          fi
+
+      - name: Install dependencies
+        if: steps.check-package.outputs.exists == 'true'
+        run: |
+          case "${{ steps.package-manager.outputs.manager }}" in
+            pnpm)
+              if [ -f "pnpm-lock.yaml" ]; then
+                pnpm install --frozen-lockfile
+              else
+                echo "No pnpm-lock.yaml found. Skipping dependency installation."
+              fi
+              ;;
+            yarn)
+              if [ -f "yarn.lock" ]; then
+                yarn install --frozen-lockfile
+              else
+                echo "No yarn.lock found. Skipping dependency installation."
+              fi
+              ;;
+            npm)
+              if [ -f "package-lock.json" ]; then
+                npm ci
+              elif [ -f "package.json" ]; then
+                npm install
+              else
+                echo "No lock file or package.json found. Skipping dependency installation."
+              fi
+              ;;
+          esac
+
+      - name: Run linter
+        if: steps.check-package.outputs.exists == 'true'
+        run: |
+          MANAGER="${{ steps.package-manager.outputs.manager }}"
+          LINT_RAN=false
+          
+          # Try root package.json first
+          if [ -f "package.json" ] && grep -q '"lint"' package.json; then
+            echo "Running lint from root..."
+            $MANAGER run lint
+            LINT_RAN=true
+          fi
+          
+          # Try subdirectories
+          for dir in apps/api packages/rules; do
+            if [ -f "$dir/package.json" ] && grep -q '"lint"' "$dir/package.json"; then
+              echo "Running lint in $dir..."
+              cd "$dir" && $MANAGER run lint && cd - || exit 1
+              LINT_RAN=true
+            fi
+          done
+          
+          if [ "$LINT_RAN" = "false" ]; then
+            echo "No lint script found. Skipping lint step."
+          fi
+
+  node-build:
+    name: Node.js Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Detect package manager
+        id: package-manager
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> $GITHUB_OUTPUT
+            echo "lockfile=pnpm-lock.yaml" >> $GITHUB_OUTPUT
+          elif [ -f "yarn.lock" ]; then
+            echo "manager=yarn" >> $GITHUB_OUTPUT
+            echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+          else
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "lockfile=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install pnpm
+        if: steps.package-manager.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Check for package.json files
+        id: check-package-build
+        run: |
+          if [ -f "package.json" ] || [ -f "apps/api/package.json" ] || [ -f "packages/rules/package.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Found package.json file(s)"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No package.json files found. Skipping Node.js build."
+          fi
+
+      - name: Install dependencies
+        if: steps.check-package-build.outputs.exists == 'true'
+        run: |
+          case "${{ steps.package-manager.outputs.manager }}" in
+            pnpm)
+              if [ -f "pnpm-lock.yaml" ]; then
+                pnpm install --frozen-lockfile
+              else
+                echo "No pnpm-lock.yaml found. Skipping dependency installation."
+              fi
+              ;;
+            yarn)
+              if [ -f "yarn.lock" ]; then
+                yarn install --frozen-lockfile
+              else
+                echo "No yarn.lock found. Skipping dependency installation."
+              fi
+              ;;
+            npm)
+              if [ -f "package-lock.json" ]; then
+                npm ci
+              elif [ -f "package.json" ]; then
+                npm install
+              else
+                echo "No lock file or package.json found. Skipping dependency installation."
+              fi
+              ;;
+          esac
+
+      - name: Run build
+        if: steps.check-package-build.outputs.exists == 'true'
+        run: |
+          MANAGER="${{ steps.package-manager.outputs.manager }}"
+          BUILD_RAN=false
+          
+          # Try root package.json first
+          if [ -f "package.json" ] && grep -q '"build"' package.json; then
+            echo "Running build from root..."
+            $MANAGER run build
+            BUILD_RAN=true
+          fi
+          
+          # Try subdirectories
+          for dir in apps/api packages/rules; do
+            if [ -f "$dir/package.json" ] && grep -q '"build"' "$dir/package.json"; then
+              echo "Running build in $dir..."
+              cd "$dir" && $MANAGER run build && cd - || exit 1
+              BUILD_RAN=true
+            fi
+          done
+          
+          if [ "$BUILD_RAN" = "false" ]; then
+            echo "No build script found. Skipping build step."
+          fi
