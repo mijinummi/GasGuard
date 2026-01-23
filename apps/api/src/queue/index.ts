@@ -1,5 +1,5 @@
 import { Queue, Worker, QueueEvents, JobsOptions } from 'bullmq'
-import { createClient } from 'ioredis'
+import Redis from 'ioredis'
 import { performScan } from '../scan.js'
 import { createInMemoryQueue } from './memory.js'
 
@@ -10,7 +10,7 @@ export function initQueue({ redisUrl, queueName }: InitOptions) {
     const { queue, worker, events } = createInMemoryQueue(queueName)
     return { queue, worker, events }
   }
-  const connection = new createClient(redisUrl)
+  const connection = new Redis(redisUrl)
   const queue = new Queue(queueName, { connection })
   const events = new QueueEvents(queueName, { connection })
   const worker = new Worker(
