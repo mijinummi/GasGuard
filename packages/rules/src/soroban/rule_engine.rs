@@ -5,7 +5,6 @@
 
 use super::soroban::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
 use crate::{RuleViolation, ViolationSeverity};
-use std::collections::HashMap;
 
 /// Soroban-specific rule engine
 pub struct SorobanRuleEngine {
@@ -39,14 +38,14 @@ impl SorobanRuleEngine {
     
     /// Add all default Soroban rules
     fn add_default_rules(&mut self) {
-        self.add_rule(UnusedStateVariablesRule)
-            .add_rule(InefficientStorageAccessRule)
-            .add_rule(UnboundedLoopRule)
-            .add_rule(ExpensiveStringOperationsRule)
-            .add_rule(MissingConstructorRule)
-            .add_rule(AdminPatternRule)
-            .add_rule(InefficientIntegerTypesRule)
-            .add_rule(MissingErrorHandlingRule);
+        self.add_rule(UnusedStateVariablesRule { enabled: true })
+            .add_rule(InefficientStorageAccessRule { enabled: true })
+            .add_rule(UnboundedLoopRule { enabled: true })
+            .add_rule(ExpensiveStringOperationsRule { enabled: true })
+            .add_rule(MissingConstructorRule { enabled: true })
+            .add_rule(AdminPatternRule { enabled: true })
+            .add_rule(InefficientIntegerTypesRule { enabled: true })
+            .add_rule(MissingErrorHandlingRule { enabled: true });
     }
     
     /// Analyze Soroban contract source code

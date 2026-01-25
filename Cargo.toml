@@ -2,7 +2,8 @@
 members = [
     "packages/rules",
     "libs/engine", 
-    "apps/api"
+    "apps/api",
+    "crates/engine"
 ]
 
 [workspace.package]

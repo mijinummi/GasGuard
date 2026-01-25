@@ -353,7 +353,7 @@ impl SorobanParser {
         let mut params = Vec::new();
         
         // Split by comma, handling nested parentheses
-        let param_parts = Self::split_preserving_parentheses(params_section, ',');
+        let param_parts = Self::split_preserving_parentheses(&params_section, ',');
         
         for param_part in param_parts {
             let param_part = param_part.trim();

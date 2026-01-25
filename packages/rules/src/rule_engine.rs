@@ -21,6 +21,7 @@ pub enum ViolationSeverity {
     Error,
     Warning,
     Info,
+    Medium,
 }
 
 pub trait Rule {
